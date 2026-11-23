@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#07151c">
+    <title>Mikrobiyoloji & İmmün Laboratuvarı | Gamze Hocam</title>
+    <style>
+        :root {
+            --bg-micro: #07151c;
+            --bg-deep: #040c10;
+            --bio-emerald: #10b981;
+            --cell-cyan: #22d3ee;
+            --virus-rose: #f43f5e;
+            --quartz-violet: #e879f9;
+            --warm-gold: #fde047;
+            --text-light: #ecfdf5;
+            --text-muted: #86b3a8;
+            --panel-bio: rgba(9, 27, 35, 0.85);
+            --border-bio: rgba(34, 211, 238, 0.26);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #02070a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 9:16 Dikey Telefon Çerçevesi */
+        #app-shell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+            max-height: 920px;
+            background: radial-gradient(circle at 50% 48%, #0d2b36 0%, var(--bg-micro) 68%, var(--bg-deep) 100%);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 0 55px rgba(16, 185, 129, 0.16);
+        }
+
+        @media (min-width: 500px) {
+            #app-shell {
+                height: 94vh;
+                border-radius: 32px;
+                border: 1.5px solid rgba(34, 211, 238, 0.22);
+            }
+        }
+
+        canvas#bio-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Üst Durum Çubuğu */
+        .top-bar {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: calc(env(safe-area-inset-top, 14px) + 12px) 18px 10px;
+            background: linear-gradient(180deg, rgba(4, 12, 16, 0.94) 0%, rgba(4, 12, 16, 0) 100%);
+        }
+
+        .bio-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: ui-monospace, monospace;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--bio-emerald);
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.32);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .top-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--panel-bio);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 15px;
+            cursor: pointer;
+            transition: transform 0.14s ease;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.9);
+            border-color: var(--bio-emerald);
+        }
+
+        /* 7 Aşamalı İlerleme Çubuğu */
+        .progress-track {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            gap: 5px;
+            padding: 0 20px;
+        }
+
+        .progress-seg {
+            flex: 1;
+            height: 3.5px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.14);
+            transition: background 0.35s ease;
+        }
+
+        .progress-seg.active {
+            background: var(--bio-emerald);
+            box-shadow: 0 0 10px var(--bio-emerald);
+        }
+
+        .progress-seg.done {
+            background: var(--cell-cyan);
+        }
+
+        /* Bilgi & Görev Kartı */
+        .hud-header {
+            position: relative;
+            z-index: 10;
+            padding: 14px 20px 0;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .step-tag {
+            font-family: ui-monospace, monospace;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: var(--cell-cyan);
+            letter-spacing: 1.4px;
+            margin-bottom: 4px;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .step-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-light);
+            margin-bottom: 5px;
+            letter-spacing: -0.3px;
+        }
+
+        .step-desc {
+            font-size: 13px;
+            line-height: 1.42;
+            color: var(--text-muted);
+            max-width: 350px;
+            margin: 0 auto;
+        }
+
+        /* Alt Kontrol Alanı */
+        .bottom-deck {
+            position: relative;
+            z-index: 10;
+            padding: 14px 20px calc(env(safe-area-inset-bottom, 16px) + 16px);
+            background: linear-gradient(0deg, rgba(4, 12, 16, 0.96) 0%, rgba(4, 12, 16, 0) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .instruction-pill {
+            background: var(--panel-bio);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            padding: 11px 15px;
+            border-radius: 14px;
+            font-size: 13px;
+            color: var(--text-light);
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+        }
+
+        .instruction-pill strong {
+            color: var(--bio-emerald);
+        }
+
+        /* Özel Dokunmatik Slider */
+        .slider-box {
+            width: 100%;
+            background: var(--panel-bio);
+            border: 1px solid var(--border-bio);
+            border-radius: 16px;
+            padding: 12px 15px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-family: ui-monospace, monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            outline: none;
+            touch-action: pan-x;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--bio-emerald);
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.55);
+            border: 2px solid #fff;
+            cursor: pointer;
+        }
+
+        /* Aksiyon Butonu */
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, var(--bio-emerald), #059669);
+            color: #ffffff;
+            font-size: 14.5px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            box-shadow: 0 8px 22px rgba(16, 185, 129, 0.35);
+            cursor: pointer;
+            transition: transform 0.14s ease;
+            display: none;
+        }
+
+        .action-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Final Tebrik Kartı Katmanı */
+        #final-card-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            background: rgba(4, 12, 16, 0.82);
+            backdrop-filter: blur(12px);
+            animation: fadeIn 0.65s ease forwards;
+            overflow-y: auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .certificate-card {
+            width: 100%;
+            background: linear-gradient(165deg, #0e242e 0%, #071319 100%);
+            border: 1.5px solid rgba(232, 121, 249, 0.45);
+            border-radius: 22px;
+            padding: 18px 16px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), inset 0 0 28px rgba(232, 121, 249, 0.08);
+            text-align: center;
+            position: relative;
+        }
+
+        .prism-badge {
+            display: inline-block;
+            font-family: ui-monospace, monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--quartz-violet);
+            background: rgba(232, 121, 249, 0.12);
+            border: 1px solid rgba(232, 121, 249, 0.35);
+            padding: 4px 13px;
+            border-radius: 20px;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 19px;
+            font-weight: 800;
+            color: var(--text-light);
+            margin-bottom: 10px;
+            line-height: 1.25;
+        }
+
+        .card-message {
+            font-size: 13px;
+            line-height: 1.56;
+            color: #e6f7f2;
+            margin-bottom: 12px;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.34);
+            padding: 13px 13px;
+            border-radius: 14px;
+            border-left: 3.5px solid var(--quartz-violet);
+            max-height: 55vh;
+            overflow-y: auto;
+            touch-action: pan-y;
+        }
+
+        .card-message p {
+            margin-bottom: 8px;
+        }
+
+        .card-message p:last-child {
+            margin-bottom: 0;
+        }
+
+        .card-signature {
+            text-align: right;
+            font-weight: 800;
+            font-size: 14.5px;
+            color: var(--bio-emerald);
+            margin-top: 6px;
+        }
+
+        .card-footer-tag {
+            font-family: ui-monospace, monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .replay-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: var(--text-light);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .replay-btn:active {
+            background: var(--bio-emerald);
+            border-color: var(--bio-emerald);
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-shell">
+    <canvas id="bio-canvas"></canvas>
+
+    <!-- Üst Alan -->
+    <div>
+        <div class="top-bar">
+            <div class="bio-badge">
+                <span>🔬 BIO-LAB • 24.11</span>
+            </div>
+            <div class="top-controls">
+                <button class="icon-btn" id="sound-toggle" aria-label="Sesi Aç/Kapat">🔇</button>
+                <button class="icon-btn" id="reset-top" aria-label="Başa Dön">↺</button>
+            </div>
+        </div>
+
+        <div class="progress-track">
+            <div class="progress-seg active" id="seg-0"></div>
+            <div class="progress-seg" id="seg-1"></div>
+            <div class="progress-seg" id="seg-2"></div>
+            <div class="progress-seg" id="seg-3"></div>
+            <div class="progress-seg" id="seg-4"></div>
+            <div class="progress-seg" id="seg-5"></div>
+            <div class="progress-seg" id="seg-6"></div>
+        </div>
+
+        <div class="hud-header">
+            <span class="step-tag" id="step-tag">ANALİZ 01 / 07 • MİKROSKOP ODAKLAMA</span>
+            <h1 class="step-title" id="step-title">Petri Kabını Netleştir</h1>
+            <p class="step-desc" id="step-desc">Mikrobiyolojik incelemeye başlamak için mikroskop objektifinin ince ayar vidasını odak noktasına (400x) getirin.</p>
+        </div>
+    </div>
+
+    <!-- Alt Etkileşim Alanı -->
+    <div class="bottom-deck">
+        <div class="slider-box" id="control-slider-box">
+            <div class="slider-labels">
+                <span id="slider-left-lbl">40x</span>
+                <span id="slider-center-val">Odak: %18</span>
+                <span id="slider-right-lbl">1000x</span>
+            </div>
+            <input type="range" id="main-slider" min="0" max="100" value="18">
+        </div>
+
+        <div class="instruction-pill" id="instruction-text">
+            Sürgüyü kaydırarak görüntüyü <strong>tam net odak noktasına (%68)</strong> getirin.
+        </div>
+
+        <button class="action-btn" id="next-stage-btn">Sonraki Biyolojik Aşamaya Geç →</button>
+    </div>
+
+    <!-- Final Öğretmenler Günü Kartı -->
+    <div id="final-card-overlay">
+        <div class="certificate-card">
+            <div class="prism-badge">IMMUNITY 100% • QUARTZ SPECTRUM</div>
+            <h2 class="card-title">Öğretmenler Gününüz Kutlu Olsun</h2>
+            <div class="card-message">
+                <p>Sevgili Gamze Hocam,</p>
+                <p>Sizi nasıl ya da ne zaman tanığımı bile bilmiyorum açıkçası. Bir gün aniden Batuhan Hoca’nın ofisine geldiniz ve o an orda muhabbet ederken tanışmış olduk. Gerçi itiraf edeyim, uzun bir süre adınızı bile bilmiyordum. Sonrasında kartınızda görerek öğrenmiştim. Üniversitenin bana kattığı dostlarım ve hocalığı bir kenara bırakarak abilerim haline gelen kişiler var tabii ki. Şayet onları siz de tanıyorsunuz. Ancak ne yalan söyleyeyim, daha önce kimse ablam gibi hissettirememişti. Tek bir sohbet anında aklınızda tutup bana getirdiğiniz o kuvars prizması evde, masamın üstünde ilk günden beri duruyor. İnce düşünceniz, eğlenceli karakteriniz, sevecen yapınız ve güçlü duruşunuzla birlikte gerçekten harika bir insansınız. İyi ki tanımışım sizi, iyi ki varsınız. Kendinize çok dikkat edin, grip olmayın..</p>
+                <p><strong>Öğretmenler gününüz kutlu olsun!</strong></p>
+                <div class="card-signature">- Fatih</div>
+            </div>
+            <div class="card-footer-tag">7 / 7 Mikrobiyoloji & Savunma Analizi Tamamlandı</div>
+            <button class="replay-btn" id="replay-all-btn">↺ Laboratuvar Analizini Baştan Başlat</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+    const canvas = document.getElementById('bio-canvas');
+    const ctx = canvas.getContext('2d');
+    const shell = document.getElementById('app-shell');
+
+    // UI Elemanları
+    const stepTag = document.getElementById('step-tag');
+    const stepTitle = document.getElementById('step-title');
+    const stepDesc = document.getElementById('step-desc');
+    const instructionText = document.getElementById('instruction-text');
+    const nextBtn = document.getElementById('next-stage-btn');
+    const sliderBox = document.getElementById('control-slider-box');
+    const mainSlider = document.getElementById('main-slider');
+    const sliderLeftLbl = document.getElementById('slider-left-lbl');
+    const sliderRightLbl = document.getElementById('slider-right-lbl');
+    const sliderCenterVal = document.getElementById('slider-center-val');
+    const finalOverlay = document.getElementById('final-card-overlay');
+    const soundBtn = document.getElementById('sound-toggle');
+    const resetTopBtn = document.getElementById('reset-top');
+    const replayAllBtn = document.getElementById('replay-all-btn');
+
+    let width = 0, height = 0, dpr = 1;
+    let stage = 0; // 0..6 (7 aşama), 7 = Final
+    let time = 0;
+
+    const pointer = { x: 0, y: 0, isDown: false };
+
+    // --- WEB AUDIO API (ORGANİK & KRİSTAL SESLER) ---
+    let audioCtx = null;
+    let soundEnabled = false;
+
+    function initAudio() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function toggleSound(forceState) {
+        initAudio();
+        soundEnabled = forceState !== undefined ? forceState : !soundEnabled;
+        soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
+        if (soundEnabled) playBioChime(587.33, 0.22);
+    }
+
+    function playBioChime(freq, duration = 0.25, vol = 0.08) {
+        if (!soundEnabled || !audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.06, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // --- BOYUTLANDIRMA ---
+    function resize() {
+        const rect = shell.getBoundingClientRect();
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = rect.width;
+        height = rect.height;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // --- AŞAMA DEĞİŞKENLERİ ---
+    // 0: Mikroskop Odaklama
+    let focusVal = 18;
+    let focusHold = 0;
+    let stage0Done = false;
+
+    // 1: İnfluenza (Grip) Virüsü Tespiti
+    let microbes = [];
+    let virusesIsolated = 0;
+    let stage1Done = false;
+
+    // 2: Y-Tipi Antikor Kilitlenmesi
+    let antibody = { x: 0.32, y: 0.58, dragging: false, locked: false };
+    let stage2Done = false;
+
+    // 3: Makrofaj Fagositoz Savunması
+    let phagoProgress = 0;
+    let stage3Done = false;
+
+    // 4: İnkübatör Sıcaklığı (37.0°C)
+    let tempSlider = 25; // 54 ideal -> 37.0°C
+    let tempHold = 0;
+    let stage4Done = false;
+
+    // 5: Bağışıklık Kalkanı Güçlendirme (Ritimli Dokunma)
+    let shieldNodes = 0; // 0..5
+    let stage5Done = false;
+
+    // 6: Kuvars Prizması Işık Kırılımı
+    let prismAngle = -0.5;
+    let prismHold = 0;
+    let stage6Done = false;
+
+    const stagesMeta = [
+        {
+            tag: "ANALİZ 01 / 07 • MİKROSKOP ODAKLAMA",
+            title: "Petri Kabını Netleştir",
+            desc: "Mikrobiyolojik incelemeye başlamak için objektifin ince ayar vidasını tam netlik noktasına getirin.",
+            instr: "Sürgüyü kaydırarak görüntüyü <strong>tam net odak noktasına (%68)</strong> getirin."
+        },
+        {
+            tag: "ANALİZ 02 / 07 • PATOJEN TARAMASI",
+            title: "Grip (İnfluenza) Virüsünü İzole Et",
+            desc: "Petri kabındaki yararlı mikroorganizmalar arasından kırmızı dikenli grip virüslerini tespit edip işaretleyin.",
+            instr: "Ekrandaki <strong>4 kırmızı grip virüsüne</strong> dokunarak izole edin."
+        },
+        {
+            tag: "ANALİZ 03 / 07 • İMMÜN YANIT",
+            title: "Özgül Antikor Eşleşmesi",
+            desc: "Bağışıklık sisteminin ürettiği Y-tipi antikoru, grip virüsünün yüzey antijenine anahtar-kilit uyumuyla bağlayın.",
+            instr: "Turkuaz <strong>Y-antikoru sürükleyip</strong> grip virüsüne kenetleyin."
+        },
+        {
+            tag: "ANALİZ 04 / 07 • FAGOSİTOZ SAVUNMASI",
+            title: "Makrofaj Temizliği",
+            desc: "İşaretlenen viral partikülleri hücre içine alıp tamamen etkisiz hale getirmek için savunma hücresini uyarın.",
+            instr: "Ortadaki makrofaj hücresine <strong>parmağınızı basılı tutun</strong>."
+        },
+        {
+            tag: "ANALİZ 05 / 07 • İNKÜBASYON DENGESİ",
+            title: "İdeal Vücut Isısı: 37.0°C",
+            desc: "Yararlı mikrobiyotanın canlanması ve iyileşme sürecinin tamamlanması için inkübatörü tam 37.0°C'ye sabitleyin.",
+            instr: "Sürgüyü kaydırarak sıcaklığı <strong>37.0°C noktasına</strong> getirin."
+        },
+        {
+            tag: "ANALİZ 06 / 07 • KORUYUCU BARIYER",
+            title: "Grip Kalkanını Aktifleştir",
+            desc: "Kendinize çok dikkat edin, grip olmayın! Hücre zarını çevreleyen 5 koruyucu bağışıklık halkasını güçlendirin.",
+            instr: "Hücre çevresindeki <strong>parlayan kalkan noktalarına 5 kez dokunun</strong>."
+        },
+        {
+            tag: "ANALİZ 07 / 07 • KUVARS PRİZMASI",
+            title: "Işığı Tayfa Ayır",
+            desc: "Masamın üstünde ilk günden beri duran o özel hediye: Kuvars prizmasına beyaz ışığı doğru açıyla gönderin.",
+            instr: "Prizmanın üzerine <strong>parmağınızı basılı tutarak</strong> gökkuşağı kırılımını tamamlayın."
+        }
+    ];
+
+    function initMicrobes() {
+        microbes = [
+            { x: 0.34, y: 0.43, isVirus: true, caught: false, vx: 0.002, vy: 0.0015 },
+            { x: 0.65, y: 0.44, isVirus: true, caught: false, vx: -0.0018, vy: 0.002 },
+            { x: 0.38, y: 0.58, isVirus: true, caught: false, vx: 0.0015, vy: -0.002 },
+            { x: 0.63, y: 0.57, isVirus: true, caught: false, vx: -0.002, vy: -0.0015 },
+            { x: 0.50, y: 0.48, isVirus: false, caught: false, vx: 0.001, vy: 0.001 },
+            { x: 0.44, y: 0.52, isVirus: false, caught: false, vx: -0.001, vy: 0.0012 },
+            { x: 0.56, y: 0.52, isVirus: false, caught: false, vx: 0.0012, vy: -0.001 }
+        ];
+    }
+
+    function setupStage(idx) {
+        stage = idx;
+        nextBtn.style.display = 'none';
+        sliderBox.style.display = 'none';
+        finalOverlay.style.display = 'none';
+
+        for (let i = 0; i < 7; i++) {
+            const seg = document.getElementById(`seg-${i}`);
+            seg.className = 'progress-seg' + (i < idx ? ' done' : (i === idx ? ' active' : ''));
+        }
+
+        if (idx < 7) {
+            const meta = stagesMeta[idx];
+            stepTag.textContent = meta.tag;
+            stepTitle.textContent = meta.title;
+            stepDesc.textContent = meta.desc;
+            instructionText.innerHTML = meta.instr;
+        }
+
+        if (idx === 0) {
+            focusVal = 18;
+            focusHold = 0;
+            mainSlider.value = 18;
+            sliderLeftLbl.textContent = '40x';
+            sliderRightLbl.textContent = '1000x';
+            sliderCenterVal.textContent = 'Odak: %18';
+            stage0Done = false;
+            sliderBox.style.display = 'flex';
+        } else if (idx === 1) {
+            initMicrobes();
+            virusesIsolated = 0;
+            stage1Done = false;
+        } else if (idx === 2) {
+            antibody = { x: 0.30, y: 0.58, dragging: false, locked: false };
+            stage2Done = false;
+        } else if (idx === 3) {
+            phagoProgress = 0;
+            stage3Done = false;
+        } else if (idx === 4) {
+            tempSlider = 20;
+            tempHold = 0;
+            mainSlider.value = 20;
+            sliderLeftLbl.textContent = '34.0°C';
+            sliderRightLbl.textContent = '41.0°C';
+            sliderCenterVal.textContent = '35.4°C';
+            stage4Done = false;
+            sliderBox.style.display = 'flex';
+        } else if (idx === 5) {
+            shieldNodes = 0;
+            stage5Done = false;
+        } else if (idx === 6) {
+            prismHold = 0;
+            stage6Done = false;
+        } else if (idx === 7) {
+            finalOverlay.style.display = 'flex';
+            playBioChime(523.25, 0.35, 0.1);
+            setTimeout(() => playBioChime(659.25, 0.35, 0.1), 130);
+            setTimeout(() => playBioChime(783.99, 0.5, 0.12), 260);
+        }
+    }
+
+    // --- DOKUNMATİK OLAYLAR ---
+    function getPos(e) {
+        const rect = shell.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    shell.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('button') || e.target.closest('input')) return;
+        if (!audioCtx) toggleSound(true);
+        const p = getPos(e);
+        pointer.isDown = true;
+        pointer.x = p.x;
+        pointer.y = p.y;
+
+        // Aşama 1: Grip virüsü izole etme
+        if (stage === 1 && !stage1Done) {
+            microbes.forEach(m => {
+                if (m.isVirus && !m.caught) {
+                    if (Math.hypot(p.x - m.x * width, p.y - m.y * height) < 38) {
+                        m.caught = true;
+                        virusesIsolated++;
+                        playBioChime(480 + virusesIsolated * 85, 0.18, 0.1);
+                        if (virusesIsolated >= 4) {
+                            stage1Done = true;
+                            instructionText.innerHTML = "✅ <strong>Tüm Grip Virüsleri İzole Edildi!</strong> Antikor eşleşmesine geçebilirsiniz.";
+                            nextBtn.style.display = 'block';
+                        } else {
+                            instructionText.innerHTML = `🧬 Virüs işaretlendi! Kalan patojen: <strong>${4 - virusesIsolated}</strong>`;
+                        }
+                    }
+                }
+            });
+        }
+
+        // Aşama 2: Antikor tutma
+        if (stage === 2 && !antibody.locked) {
+            if (Math.hypot(p.x - antibody.x * width, p.y - antibody.y * height) < 55) {
+                antibody.dragging = true;
+            }
+        }
+
+        // Aşama 5: Bağışıklık kalkanı dokunma
+        if (stage === 5 && !stage5Done) {
+            const cx = width * 0.5;
+            const cy = height * 0.50;
+            if (Math.hypot(p.x - cx, p.y - cy) < 130) {
+                shieldNodes++;
+                playBioChime(420 + shieldNodes * 75, 0.2, 0.1);
+                if (shieldNodes >= 5) {
+                    stage5Done = true;
+                    instructionText.innerHTML = "✅ <strong>Bağışıklık Kalkanı %100 Aktif!</strong> Gribe karşı tam koruma sağlandı.";
+                    nextBtn.style.display = 'block';
+                } else {
+                    instructionText.innerHTML = `🛡️ Kalkan katmanı örüldü! Kalan koruma: <strong>${5 - shieldNodes}</strong>`;
+                }
+            }
+        }
+    });
+
+    shell.addEventListener('pointermove', (e) => {
+        if (!pointer.isDown) return;
+        const p = getPos(e);
+        pointer.x = p.x;
+        pointer.y = p.y;
+
+        // Aşama 2: Antikor sürükleme
+        if (stage === 2 && antibody.dragging && !antibody.locked) {
+            antibody.x = Math.max(0.2, Math.min(0.8, p.x / width));
+            antibody.y = Math.max(0.35, Math.min(0.65, p.y / height));
+
+            const targetX = width * 0.64;
+            const targetY = height * 0.46;
+            if (Math.hypot(antibody.x * width - targetX, antibody.y * height - targetY) < 26) {
+                antibody.x = 0.60;
+                antibody.y = 0.47;
+                antibody.locked = true;
+                antibody.dragging = false;
+                stage2Done = true;
+                playBioChime(740, 0.3, 0.12);
+                instructionText.innerHTML = "✅ <strong>Antikor-Antijen Kilidi Tamamlandı!</strong> Virüs nötralize edildi.";
+                nextBtn.style.display = 'block';
+            }
+        }
+    });
+
+    window.addEventListener('pointerup', () => {
+        antibody.dragging = false;
+        pointer.isDown = false;
+    });
+
+    mainSlider.addEventListener('input', (e) => {
+        if (!audioCtx) toggleSound(true);
+        const val = parseInt(e.target.value, 10);
+        if (stage === 0) {
+            focusVal = val;
+            sliderCenterVal.textContent = `Odak: %${val}`;
+            if (Math.random() < 0.25) playBioChime(320 + val * 3, 0.05, 0.03);
+        } else if (stage === 4) {
+            tempSlider = val;
+            const deg = (34 + (val / 100) * 7).toFixed(1);
+            sliderCenterVal.textContent = `${deg}°C`;
+            if (Math.random() < 0.25) playBioChime(350 + val * 2, 0.05, 0.03);
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        playBioChime(520, 0.12, 0.08);
+        setupStage(stage + 1);
+    });
+
+    soundBtn.addEventListener('click', () => toggleSound());
+    resetTopBtn.addEventListener('click', () => setupStage(0));
+    replayAllBtn.addEventListener('click', () => setupStage(0));
+
+    // --- ARKA PLAN PETRİ KABI & MİKROSKOP ÖLÇEĞİ ---
+    function drawPetriDish() {
+        const cx = width * 0.5;
+        const cy = height * 0.50;
+        const dishR = Math.min(width * 0.42, 168);
+
+        // Petri kabı cam halkası
+        ctx.beginPath();
+        ctx.arc(cx, cy, dishR, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.18)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, dishR - 8, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Mikrometre artı çizgisi
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.beginPath();
+        ctx.moveTo(cx - dishR, cy);
+        ctx.lineTo(cx + dishR, cy);
+        ctx.moveTo(cx, cy - dishR);
+        ctx.lineTo(cx, cy + dishR);
+        ctx.stroke();
+    }
+
+    function drawVirusShape(x, y, r, color, spikes = 10) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(time * 0.6);
+        for (let i = 0; i < spikes; i++) {
+            const a = (i * Math.PI * 2) / spikes;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+            ctx.lineTo(Math.cos(a) * (r + 7), Math.sin(a) * (r + 7));
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * (r + 8), Math.sin(a) * (r + 8), 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // --- AŞAMA 0: MİKROSKOP ODAKLAMA ---
+    function renderStage0() {
+        const cx = width * 0.5;
+        const cy = height * 0.50;
+        const blurFactor = Math.abs(focusVal - 68) / 68; // 0 = tam net
+
+        // Hücre çekirdeği ve organeller (Bulanıklık katmanlı çizim)
+        const layers = blurFactor > 0.06 ? 4 : 1;
+        for (let l = 0; l < layers; l++) {
+            const offX = l === 0 ? 0 : Math.cos(l * 2 + time) * blurFactor * 18;
+            const offY = l === 0 ? 0 : Math.sin(l * 2 + time) * blurFactor * 18;
+            ctx.globalAlpha = l === 0 ? (1 - blurFactor * 0.5) : 0.22;
+
+            ctx.beginPath();
+            ctx.arc(cx + offX, cy + offY, 68, 0, Math.PI * 2);
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(cx - 18 + offX, cy - 12 + offY, 22, 0, Math.PI * 2);
+            ctx.fillStyle = '#22d3ee';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.ellipse(cx + 26 + offX, cy + 18 + offY, 16, 9, 0.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#e879f9';
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        if (Math.abs(focusVal - 68) <= 4 && !stage0Done) {
+            focusHold++;
+            if (focusHold >= 50) {
+                stage0Done = true;
+                instructionText.innerHTML = "✅ <strong>400x Optik Odak Kilitlendi!</strong> Hücre yapısı netleşti.";
+                nextBtn.style.display = 'block';
+                playBioChime(659.25, 0.3, 0.12);
+            }
+        } else if (!stage0Done) {
+            focusHold = Math.max(0, focusHold - 1);
+        }
+    }
+
+    // --- AŞAMA 1: GRİP VİRÜSÜ TESPİTİ ---
+    function renderStage1() {
+        microbes.forEach(m => {
+            if (!m.caught) {
+                m.x += m.vx;
+                m.y += m.vy;
+                if (m.x < 0.28 || m.x > 0.72) m.vx *= -1;
+                if (m.y < 0.38 || m.y > 0.62) m.vy *= -1;
+            }
+
+            const mx = m.x * width;
+            const my = m.y * height;
+
+            if (m.isVirus) {
+                drawVirusShape(mx, my, 13, m.caught ? '#10b981' : '#f43f5e', 8);
+                if (m.caught) {
+                    ctx.beginPath();
+                    ctx.arc(mx, my, 24, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            } else {
+                // Yararlı basil bakterisi
+                ctx.save();
+                ctx.translate(mx, my);
+                ctx.rotate(time + mx * 0.01);
+                ctx.fillStyle = 'rgba(34, 211, 238, 0.45)';
+                ctx.beginPath();
+                ctx.roundRect(-14, -6, 28, 12, 6);
+                ctx.fill();
+                ctx.restore();
+            }
+        });
+    }
+
+    // --- AŞAMA 2: Y-TİPİ ANTİKOR KİLİTLENMESİ ---
+    function renderStage2() {
+        const vx = width * 0.66;
+        const vy = height * 0.45;
+
+        // Hedef Grip Virüsü
+        drawVirusShape(vx, vy, 24, antibody.locked ? '#10b981' : '#f43f5e', 10);
+
+        // Y-Tipi Antikor (Kullanıcı sürükler)
+        const ax = antibody.x * width;
+        const ay = antibody.y * height;
+
+        ctx.save();
+        ctx.translate(ax, ay);
+        ctx.rotate(-Math.PI / 4);
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+
+        // Y gövdesi ve kolları
+        ctx.beginPath();
+        ctx.moveTo(0, 22);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(-16, -18);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(16, -18);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // --- AŞAMA 3: MAKROFAJ FAGOSİTOZ ---
+    function renderStage3() {
+        const cx = width * 0.5;
+        const cy = height * 0.50;
+
+        if (pointer.isDown && !stage3Done) {
+            if (Math.hypot(pointer.x - cx, pointer.y - cy) < 135) {
+                phagoProgress = Math.min(100, phagoProgress + 1.15);
+                if (Math.floor(phagoProgress) % 10 === 0) {
+                    playBioChime(360 + phagoProgress * 3, 0.08, 0.05);
+                }
+            }
+        } else if (!stage3Done) {
+            phagoProgress = Math.max(0, phagoProgress - 0.5);
+        }
+
+        if (phagoProgress >= 100 && !stage3Done) {
+            stage3Done = true;
+            instructionText.innerHTML = "✅ <strong>Fagositoz Tamamlandı!</strong> Tüm viral kalıntılar temizlendi.";
+            nextBtn.style.display = 'block';
+            playBioChime(698.46, 0.35, 0.12);
+        }
+
+        // Dalgalı Makrofaj Hücresi
+        ctx.beginPath();
+        const baseR = 54 + (phagoProgress / 100) * 32;
+        for (let i = 0; i <= 36; i++) {
+            const a = (i / 36) * Math.PI * 2;
+            const wave = Math.sin(a * 6 + time * 4) * 6;
+            const r = baseR + wave;
+            const x = cx + Math.cos(a) * r;
+            const y = cy + Math.sin(a) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
+        ctx.fill();
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ecfdf5';
+        ctx.font = 'bold 13px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`TEMİZLİK: %${Math.floor(phagoProgress)}`, cx, cy + 5);
+    }
+
+    // --- AŞAMA 4: İNKÜBATÖR SICAKLIĞI (37.0°C) ---
+    function renderStage4() {
+        const cx = width * 0.5;
+        const cy = height * 0.49;
+        const deg = 34 + (tempSlider / 100) * 7;
+        const inTarget = Math.abs(deg - 37.0) <= 0.25;
+
+        // Termometre halkası
+        ctx.beginPath();
+        ctx.arc(cx, cy, 76, 0, Math.PI * 2);
+        ctx.strokeStyle = inTarget ? '#10b981' : '#f59e0b';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ecfdf5';
+        ctx.font = 'bold 26px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${deg.toFixed(1)}°C`, cx, cy + 8);
+
+        if (inTarget && !stage4Done) {
+            tempHold++;
+            if (tempHold >= 50) {
+                stage4Done = true;
+                instructionText.innerHTML = "✅ <strong>37.0°C İdeal Denge Sabitlendi!</strong> Hücre yenilenmesi tamamlandı.";
+                nextBtn.style.display = 'block';
+                playBioChime(740, 0.3, 0.12);
+            }
+        } else if (!stage4Done) {
+            tempHold = Math.max(0, tempHold - 1);
+        }
+    }
+
+    // --- AŞAMA 5: BAĞIŞIKLIK KALKANI ---
+    function renderStage5() {
+        const cx = width * 0.5;
+        const cy = height * 0.50;
+
+        // Merkez Sağlıklı Hücre
+        ctx.beginPath();
+        ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981';
+        ctx.fill();
+
+        // Kalkan Halkaları
+        for (let i = 1; i <= 5; i++) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, 34 + i * 16, 0, Math.PI * 2);
+            ctx.strokeStyle = i <= shieldNodes ? '#22d3ee' : 'rgba(255, 255, 255, 0.12)';
+            ctx.lineWidth = i <= shieldNodes ? 3.5 : 1.5;
+            ctx.stroke();
+        }
+    }
+
+    // --- AŞAMA 6: KUVARS PRİZMASI IŞIK KIRILIMI ---
+    function renderStage6() {
+        const cx = width * 0.5;
+        const cy = height * 0.50;
+
+        if (pointer.isDown && !stage6Done) {
+            if (Math.hypot(pointer.x - cx, pointer.y - cy) < 135) {
+                prismHold = Math.min(100, prismHold + 1.15);
+                if (Math.floor(prismHold) % 10 === 0) {
+                    playBioChime(440 + prismHold * 4, 0.09, 0.06);
+                }
+            }
+        } else if (!stage6Done) {
+            prismHold = Math.max(0, prismHold - 0.4);
+        }
+
+        if (prismHold >= 100 && !stage6Done) {
+            stage6Done = true;
+            instructionText.innerHTML = "✨ <strong>Kuvars Prizması Işıldadı!</strong> Gamze Hocam'ın notu hazır.";
+            nextBtn.textContent = "Gamze Hocam'ın Notunu Aç 💎";
+            nextBtn.style.display = 'block';
+            playBioChime(880, 0.4, 0.14);
+        }
+
+        const p = prismHold / 100;
+
+        // Sol Gelen Beyaz Işık Hüzmesi
+        ctx.beginPath();
+        ctx.moveTo(20, cy + 28);
+        ctx.lineTo(cx - 26, cy - 4);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Sağ Kırılan Gökkuşağı Tayfı
+        if (p > 0.05) {
+            const rainbow = ['#f43f5e', '#fb923c', '#fde047', '#10b981', '#22d3ee', '#e879f9'];
+            rainbow.forEach((col, idx) => {
+                ctx.beginPath();
+                ctx.moveTo(cx + 26, cy - 4 + idx * 2);
+                const endX = cx + 26 + (width - cx - 40) * p;
+                const endY = cy - 22 + idx * 14;
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = col;
+                ctx.lineWidth = 3.5;
+                ctx.stroke();
+            });
+        }
+
+        // Eşkenar Kuvars Prizması
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 58);
+        ctx.lineTo(cx + 54, cy + 38);
+        ctx.lineTo(cx - 54, cy + 38);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(232, 121, 249, 0.22)';
+        ctx.fill();
+        ctx.strokeStyle = '#e879f9';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ecfdf5';
+        ctx.font = 'bold 12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`IŞIK KIRILIMI: %${Math.floor(prismHold)}`, cx, cy + 72);
+    }
+
+    // --- ANA DÖNGÜ ---
+    function loop() {
+        time += 0.025;
+        ctx.clearRect(0, 0, width, height);
+        drawPetriDish();
+
+        if (stage === 0) renderStage0();
+        else if (stage === 1) renderStage1();
+        else if (stage === 2) renderStage2();
+        else if (stage === 3) renderStage3();
+        else if (stage === 4) renderStage4();
+        else if (stage === 5) renderStage5();
+        else if (stage === 6) renderStage6();
+
+        requestAnimationFrame(loop);
+    }
+
+    setupStage(0);
+    loop();
+})();
+</script>
+</body>
+</html>
